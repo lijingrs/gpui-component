@@ -1,7 +1,7 @@
 use crate::{ActiveTheme, Disableable, Icon, Selectable, Sizable as _, StyledExt, h_flex};
 use gpui::{
-    AnyElement, App, ClickEvent, Div, ElementId, InteractiveElement, IntoElement, MouseButton,
-    MouseDownEvent, MouseMoveEvent, ParentElement, RenderOnce, Stateful,
+    AnyElement, App, ClickEvent, Div, ElementId, Entity, InteractiveElement, IntoElement, MouseButton,
+    MouseDownEvent, MouseMoveEvent, ParentElement, Render, RenderOnce, Stateful,
     StatefulInteractiveElement as _, StyleRefinement, Styled, Window, div,
     prelude::FluentBuilder as _,
 };
@@ -123,6 +123,40 @@ impl ListItem {
         handler: impl Fn(&MouseMoveEvent, &mut Window, &mut App) + 'static,
     ) -> Self {
         self.on_mouse_enter = Some(Box::new(handler));
+        self
+    }
+
+    /// Make this row a drag source. Delegates to the underlying base div's
+    /// `on_drag` so the listener survives `RenderOnce`.
+    pub fn on_drag<T, W>(
+        mut self,
+        value: T,
+        constructor: impl Fn(&T, gpui::Point<gpui::Pixels>, &mut Window, &mut App) -> Entity<W> + 'static,
+    ) -> Self
+    where
+        T: 'static,
+        W: 'static + Render,
+    {
+        self.base = self.base.on_drag(value, constructor);
+        self
+    }
+
+    /// Make this row a drop target for drag value of type `T`. Delegates to the
+    /// underlying base div's `on_drop`.
+    pub fn on_drop<T: 'static>(
+        mut self,
+        listener: impl Fn(&T, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.base = self.base.on_drop(listener);
+        self
+    }
+
+    /// Hover start/end callback for this row. Delegates to the base div.
+    pub fn on_drag_hover(
+        mut self,
+        listener: impl Fn(&bool, &mut Window, &mut App) + 'static,
+    ) -> Self {
+        self.base = self.base.on_hover(listener);
         self
     }
 }

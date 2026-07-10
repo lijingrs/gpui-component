@@ -294,12 +294,26 @@ impl TreeState {
         self.scroll_handle.scroll_to_item(ix, strategy);
     }
 
+    /// Find the flat index of the entry whose `item.id` matches, if present.
+    pub fn index_of(&self, id: &SharedString) -> Option<usize> {
+        self.entries.iter().position(|e| &e.item.id == id)
+    }
+
+    /// Ensure the entry with the given id is visible: expand all its ancestor
+    /// folders, then scroll it to the center of the viewport. No-op if absent.
+    pub fn ensure_visible(&mut self, id: &SharedString, cx: &mut Context<Self>) {
+        self.expand_ancestors(id.clone(), cx);
+        if let Some(ix) = self.index_of(id) {
+            self.scroll_to_item(ix, gpui::ScrollStrategy::Center);
+        }
+    }
+
     /// Get the currently selected entry, if any.
     pub fn selected_entry(&self) -> Option<&TreeEntry> {
         self.selected_ix.and_then(|ix| self.entries.get(ix))
     }
 
-    fn expand_ancestors(&mut self, target_id: SharedString, cx: &mut Context<Self>) {
+    pub fn expand_ancestors(&mut self, target_id: SharedString, cx: &mut Context<Self>) {
         let mut ancestors = Vec::new();
 
         for entry in &self.entries {
@@ -335,7 +349,7 @@ impl TreeState {
         }
     }
 
-    fn toggle_expand(&mut self, ix: usize, cx: &mut Context<Self>) {
+    pub fn toggle_expand(&mut self, ix: usize, cx: &mut Context<Self>) {
         let Some(entry) = self.entries.get_mut(ix) else {
             return;
         };
@@ -437,8 +451,9 @@ impl TreeState {
     }
 
     fn on_entry_click(&mut self, ix: usize, _: &mut Window, cx: &mut Context<Self>) {
+        // Only update selection; expand/collapse is handled by the consumer
+        // via toggle_expand() (e.g. a dedicated chevron control).
         self.selected_ix = Some(ix);
-        self.toggle_expand(ix, cx);
         cx.notify();
     }
 }
