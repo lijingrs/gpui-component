@@ -295,16 +295,21 @@ impl TreeState {
     }
 
     /// Find the flat index of the entry whose `item.id` matches, if present.
-    pub fn index_of(&self, id: &SharedString) -> Option<usize> {
+    pub(crate) fn index_of(&self, id: &SharedString) -> Option<usize> {
         self.entries.iter().position(|e| &e.item.id == id)
     }
 
-    /// Ensure the entry with the given id is visible: expand all its ancestor
-    /// folders, then scroll it to the center of the viewport. No-op if absent.
-    pub fn ensure_visible(&mut self, id: &SharedString, cx: &mut Context<Self>) {
+    /// Expand all ancestors of the node with `id` and scroll it into view.
+    /// No-op if `id` is not found. Does not change the selected index.
+    pub fn reveal_item(
+        &mut self,
+        id: &SharedString,
+        strategy: gpui::ScrollStrategy,
+        cx: &mut Context<Self>,
+    ) {
         self.expand_ancestors(id.clone(), cx);
         if let Some(ix) = self.index_of(id) {
-            self.scroll_to_item(ix, gpui::ScrollStrategy::Center);
+            self.scroll_to_item(ix, strategy);
         }
     }
 
