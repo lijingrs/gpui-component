@@ -211,6 +211,17 @@ impl RenderOnce for WindowControls {
             return div().id("window-controls");
         }
 
+        // With server-side decorations the WM already provides a title bar
+        // with its own min/max/close controls; drawing ours as well stacks
+        // a duplicate set (e.g. two close buttons on X11/Wayland when the
+        // compositor granted server-side mode). Only draw when this window
+        // is client-side decorated. Windows always reports client-side
+        // decorations, and macOS returns early above.
+        #[cfg(target_os = "linux")]
+        if !matches!(window.window_decorations(), Decorations::Client { .. }) {
+            return div().id("window-controls");
+        }
+
         h_flex()
             .id("window-controls")
             .items_center()
